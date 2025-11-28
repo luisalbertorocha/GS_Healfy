@@ -2,6 +2,18 @@
 
 Nesse projeto criamos um app para a pessoa organizar sua alimentacao e habitos para poder ter uma melhor qualidade deles.
 
+
+# Rodar o projeto
+para  rodar o projeto deve clonar o repositorio com git clone 
+
+instalar as dependencias com npm install
+
+npm run android
+
+ou 
+
+npx expo start
+
 ## 📁 Estrutura de Pastas
 
 src/

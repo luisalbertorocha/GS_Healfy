@@ -1,12 +1,6 @@
 import React, { useEffect, useState } from "react";
-import {
-  Image,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { globalStyles, colors } from "../styles/StyleSheet";
+import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { colors, globalStyles } from "../styles/StyleSheet";
 
 export default function HomeScreen({ navigation, route }: any) {
   const [refeicoes, setRefeicoes] = useState([
@@ -33,21 +27,16 @@ export default function HomeScreen({ navigation, route }: any) {
     },
   ]);
 
-  // Quando voltar de AdicionarRefeicaoScreen com nova refeição
   useEffect(() => {
     const novaRefeicao = route?.params?.novaRefeicao;
     if (novaRefeicao) {
       setRefeicoes((prev) => [...prev, novaRefeicao]);
 
-      // limpa o param pra não adicionar de novo em re-renders
       navigation.setParams({ novaRefeicao: undefined });
     }
   }, [route?.params?.novaRefeicao]);
 
-  const totalCalories = refeicoes.reduce(
-    (acc, meal) => acc + meal.calories,
-    0
-  );
+  const totalCalories = refeicoes.reduce((acc, meal) => acc + meal.calories, 0);
 
   return (
     <View style={globalStyles.screenContainer}>
@@ -61,9 +50,7 @@ export default function HomeScreen({ navigation, route }: any) {
           }}
           resizeMode="contain"
         />
-        <Text style={[globalStyles.title, { marginBottom: 4 }]}>
-          Olá!
-        </Text>
+        <Text style={[globalStyles.title, { marginBottom: 4 }]}>Olá!</Text>
         <Text style={[globalStyles.subtitle, { marginBottom: 0 }]}>
           Acompanhe sua alimentação de hoje com a Helfy.
         </Text>
@@ -239,7 +226,13 @@ export default function HomeScreen({ navigation, route }: any) {
               backgroundColor: colors.primary,
             },
           ]}
-          onPress={() => navigation.navigate("AdicionarRefeicao")}
+          onPress={() =>
+            navigation.navigate("AdicionarRefeicao", {
+              adicionarRefeicao: (novaRefeicao: any) => {
+                setRefeicoes((prev) => [...prev, novaRefeicao]);
+              },
+            })
+          }
         >
           <Text style={globalStyles.buttonText}>Adicionar refeição</Text>
         </TouchableOpacity>

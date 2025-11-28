@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { globalStyles, colors } from "../styles/StyleSheet";
 
-export default function AdicionarRefeicaoScreen({ navigation }: any) {
+export default function AdicionarRefeicaoScreen({ navigation, route }: any) {
   const [nomeRefeicao, setNomeRefeicao] = useState("");
   const [horario, setHorario] = useState("");
   const [calorias, setCalorias] = useState("");
@@ -33,10 +33,13 @@ export default function AdicionarRefeicaoScreen({ navigation }: any) {
       details: descricao || "Refeição registrada",
     };
 
-    Alert.alert("Refeição adicionada", "Sua refeição foi registrada com sucesso!");
+    // chama o callback vindo da Home, se existir
+    if (route?.params?.adicionarRefeicao) {
+      route.params.adicionarRefeicao(novaRefeicao);
+    }
 
-    // Volta para a Home passando a nova refeição como parâmetro
-    navigation.navigate("Home", { novaRefeicao });
+    Alert.alert("Refeição adicionada", "Sua refeição foi registrada com sucesso!");
+    navigation.goBack();
   };
 
   return (
