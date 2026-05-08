@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import { useNavigation } from "@react-navigation/native";
+import React, { useEffect, useState } from "react";
 import {
-  Alert,
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -9,20 +10,44 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { globalStyles, colors } from "../styles/StyleSheet";
+import { loadGoals, saveGoals } from "../services/storageService";
+import { colors, globalStyles } from "../styles/StyleSheet";
+import { AppStatus, DailyGoals } from "../types";
 
-export default function MetasDiariasScreen({ navigation }: any) {
+export default function MetasDiariasScreen() {
+  const navigation = useNavigation();
   const [caloriasMeta, setCaloriasMeta] = useState("2000");
   const [aguaMeta, setAguaMeta] = useState("2000");
   const [refeicoesMeta, setRefeicoesMeta] = useState("4");
+  const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE);
 
-  const salvarMetas = () => {
+  useEffect(() => {
+    loadGoals().then((goals: DailyGoals) => {
+      setCaloriasMeta(String(goals.caloriasMeta));
+      setAguaMeta(String(goals.aguaMeta));
+      setRefeicoesMeta(String(goals.refeicoesMeta));
+    });
+  }, []);
+
+  const salvarMetas = async () => {
     if (!caloriasMeta || !aguaMeta || !refeicoesMeta) {
-      return Alert.alert("Atenção", "Preencha todas as metas antes de salvar.");
+      return;
     }
-
-    Alert.alert("Metas salvas", "Suas metas diárias foram atualizadas com sucesso!");
-    navigation.goBack?.();
+    setStatus(AppStatus.LOADING);
+    try {
+      await saveGoals({
+        caloriasMeta: Number(caloriasMeta),
+        aguaMeta: Number(aguaMeta),
+        refeicoesMeta: Number(refeicoesMeta),
+      });
+      setStatus(AppStatus.SUCCESS);
+      setTimeout(() => {
+        setStatus(AppStatus.IDLE);
+        navigation.goBack?.();
+      }, 1200);
+    } catch {
+      setStatus(AppStatus.ERROR);
+    }
   };
 
   return (
@@ -40,11 +65,15 @@ export default function MetasDiariasScreen({ navigation }: any) {
         </Text>
 
         <View style={[globalStyles.card, { marginTop: 8 }]}>
-          <Text style={[globalStyles.text, { fontWeight: "600", marginBottom: 12 }]}>
+          <Text
+            style={[globalStyles.text, { fontWeight: "600", marginBottom: 12 }]}
+          >
             Alimentação
           </Text>
 
-          <Text style={globalStyles.inputLabel}>Meta de calorias por dia (kcal)</Text>
+          <Text style={globalStyles.inputLabel}>
+            Meta de calorias por dia (kcal)
+          </Text>
           <TextInput
             style={globalStyles.input}
             keyboardType="numeric"
@@ -66,7 +95,9 @@ export default function MetasDiariasScreen({ navigation }: any) {
         </View>
 
         <View style={[globalStyles.card, { marginTop: 16 }]}>
-          <Text style={[globalStyles.text, { fontWeight: "600", marginBottom: 12 }]}>
+          <Text
+            style={[globalStyles.text, { fontWeight: "600", marginBottom: 12 }]}
+          >
             Hidratação
           </Text>
 
@@ -80,22 +111,57 @@ export default function MetasDiariasScreen({ navigation }: any) {
             onChangeText={setAguaMeta}
           />
 
-          <Text
-            style={{
-              fontSize: 12,
-              color: colors.textMuted,
-              marginTop: 4,
-            }}
-          >
+          <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 4 }}>
             Dica: 30 a 35 ml por kg de peso corporal é uma boa referência geral.
           </Text>
         </View>
 
+        {status === AppStatus.SUCCESS && (
+          <View
+            style={{
+              marginTop: 16,
+              padding: 12,
+              backgroundColor: "#DCFCE7",
+              borderRadius: 10,
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ color: colors.primary, fontWeight: "600" }}>
+              Metas salvas com sucesso!
+            </Text>
+          </View>
+        )}
+
+        {status === AppStatus.ERROR && (
+          <View
+            style={{
+              marginTop: 16,
+              padding: 12,
+              backgroundColor: "#FEE2E2",
+              borderRadius: 10,
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ color: colors.danger, fontWeight: "600" }}>
+              Erro ao salvar. Tente novamente.
+            </Text>
+          </View>
+        )}
+
         <TouchableOpacity
-          style={[globalStyles.button, { marginTop: 24 }]}
+          style={[
+            globalStyles.button,
+            { marginTop: 24 },
+            status === AppStatus.LOADING && { opacity: 0.7 },
+          ]}
           onPress={salvarMetas}
+          disabled={status === AppStatus.LOADING}
         >
-          <Text style={globalStyles.buttonText}>Salvar metas</Text>
+          {status === AppStatus.LOADING ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={globalStyles.buttonText}>Salvar metas</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>

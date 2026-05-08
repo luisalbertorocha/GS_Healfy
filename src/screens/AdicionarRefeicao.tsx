@@ -1,5 +1,7 @@
+import { useNavigation } from "@react-navigation/native";
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -9,15 +11,19 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { globalStyles, colors } from "../styles/StyleSheet";
+import { loadMeals, saveMeals } from "../services/storageService";
+import { colors, globalStyles } from "../styles/StyleSheet";
+import { AppStatus, Meal } from "../types";
 
-export default function AdicionarRefeicaoScreen({ navigation, route }: any) {
+export default function AdicionarRefeicaoScreen() {
+  const navigation = useNavigation();
   const [nomeRefeicao, setNomeRefeicao] = useState("");
   const [horario, setHorario] = useState("");
   const [calorias, setCalorias] = useState("");
   const [descricao, setDescricao] = useState("");
+  const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE);
 
-  const salvarRefeicao = () => {
+  const salvarRefeicao = async () => {
     if (!nomeRefeicao || !horario || !calorias) {
       return Alert.alert(
         "Atenção",
@@ -25,7 +31,7 @@ export default function AdicionarRefeicaoScreen({ navigation, route }: any) {
       );
     }
 
-    const novaRefeicao = {
+    const novaRefeicao: Meal = {
       id: Date.now().toString(),
       name: nomeRefeicao,
       time: horario,
@@ -33,13 +39,23 @@ export default function AdicionarRefeicaoScreen({ navigation, route }: any) {
       details: descricao || "Refeição registrada",
     };
 
-    // chama o callback vindo da Home, se existir
-    if (route?.params?.adicionarRefeicao) {
-      route.params.adicionarRefeicao(novaRefeicao);
-    }
+    setStatus(AppStatus.LOADING);
+    try {
+      const existentes = await loadMeals();
+      await saveMeals([...existentes, novaRefeicao]);
+      setStatus(AppStatus.SUCCESS);
 
-    Alert.alert("Refeição adicionada", "Sua refeição foi registrada com sucesso!");
-    navigation.goBack();
+      setTimeout(() => {
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        } else {
+          navigation.navigate("HomeTab" as never);
+        }
+      }, 800);
+    } catch {
+      setStatus(AppStatus.ERROR);
+      Alert.alert("Erro", "Não foi possível salvar a refeição.");
+    }
   };
 
   return (
@@ -87,10 +103,7 @@ export default function AdicionarRefeicaoScreen({ navigation, route }: any) {
 
           <Text style={globalStyles.inputLabel}>Descrição (opcional)</Text>
           <TextInput
-            style={[
-              globalStyles.input,
-              { height: 90, textAlignVertical: "top" },
-            ]}
+            style={[globalStyles.input, { height: 90, textAlignVertical: "top" }]}
             multiline
             placeholder="Ex: Omelete com 2 ovos, pão integral e café sem açúcar..."
             placeholderTextColor={colors.textMuted}
@@ -99,11 +112,36 @@ export default function AdicionarRefeicaoScreen({ navigation, route }: any) {
           />
         </View>
 
+        {status === AppStatus.SUCCESS && (
+          <View
+            style={{
+              marginTop: 16,
+              padding: 12,
+              backgroundColor: "#DCFCE7",
+              borderRadius: 10,
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ color: colors.primary, fontWeight: "600" }}>
+              Refeição salva com sucesso!
+            </Text>
+          </View>
+        )}
+
         <TouchableOpacity
-          style={[globalStyles.button, { marginTop: 24 }]}
+          style={[
+            globalStyles.button,
+            { marginTop: 24 },
+            status === AppStatus.LOADING && { opacity: 0.7 },
+          ]}
           onPress={salvarRefeicao}
+          disabled={status === AppStatus.LOADING || status === AppStatus.SUCCESS}
         >
-          <Text style={globalStyles.buttonText}>Salvar refeição</Text>
+          {status === AppStatus.LOADING ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={globalStyles.buttonText}>Salvar refeição</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>

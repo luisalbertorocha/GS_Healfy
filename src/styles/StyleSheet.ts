@@ -1,17 +1,18 @@
 import { StyleSheet } from "react-native";
 
 export const colors = {
-  background: "#F5FBFF",    
+  background: "#F5FBFF",
   backgroundCard: "#FFFFFF",
-  primary: "#16A34A",       
-  primaryDark: "#15803D",   
-  accent: "#0EA5E9",        
-  text: "#0F172A",          
-  textMuted: "#64748B",     
+  primary: "#16A34A",
+  primaryDark: "#15803D",
+  accent: "#0EA5E9",
+  text: "#0F172A",
+  textMuted: "#64748B",
   inputBackground: "#F1F5F9",
-  border: "#E2E8F0",        
-  danger: "#EF4444",       
-};
+  border: "#E2E8F0",
+  danger: "#EF4444",
+  success: "#22C55E",
+} as const;
 
 export const spacing = {
   xs: 4,
@@ -19,13 +20,13 @@ export const spacing = {
   md: 12,
   lg: 16,
   xl: 24,
-};
+} as const;
 
 export const radius = {
   sm: 6,
   md: 10,
   lg: 14,
-};
+} as const;
 
 export const globalStyles = StyleSheet.create({
   screenContainer: {
@@ -56,7 +57,6 @@ export const globalStyles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 2,
   },
-
 
   title: {
     fontSize: 24,
@@ -105,7 +105,7 @@ export const globalStyles = StyleSheet.create({
   button: {
     backgroundColor: colors.primary,
     paddingVertical: spacing.sm + 3,
-    borderRadius: 999, 
+    borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
     marginTop: spacing.sm,

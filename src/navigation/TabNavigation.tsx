@@ -1,12 +1,13 @@
 import { Feather } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-
 import AdicionarRefeicaoScreen from "../screens/AdicionarRefeicao";
 import MetasDiariasScreen from "../screens/MetasDiarias";
+import PerfilScreen from "../screens/Perfil";
 import { colors } from "../styles/StyleSheet";
+import { TabParamList } from "../types";
 import HomeStackNavigator from "./HomeStack";
 
-const Tab = createBottomTabNavigator();
+const Tab = createBottomTabNavigator<TabParamList>();
 
 export default function TabNavigation() {
   return (
@@ -27,7 +28,7 @@ export default function TabNavigation() {
       }}
     >
       <Tab.Screen
-        name="Home"
+        name="HomeTab"
         component={HomeStackNavigator}
         options={{
           tabBarIcon: ({ color, size }) => (
@@ -56,6 +57,17 @@ export default function TabNavigation() {
             <Feather name="plus-circle" color={color} size={size} />
           ),
           tabBarLabel: "Adicionar",
+        }}
+      />
+
+      <Tab.Screen
+        name="Perfil"
+        component={PerfilScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="user" color={color} size={size} />
+          ),
+          tabBarLabel: "Perfil",
         }}
       />
     </Tab.Navigator>

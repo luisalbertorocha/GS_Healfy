@@ -1,9 +1,10 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import AdicionarRefeicaoScreen from "../screens/AdicionarRefeicao";
 import HomeScreen from "../screens/Home";
 import MetasDiariasScreen from "../screens/MetasDiarias";
-import AdicionarRefeicaoScreen from "../screens/AdicionarRefeicao";
+import { HomeStackParamList } from "../types";
 
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<HomeStackParamList>();
 
 export default function HomeStackNavigator() {
   return (

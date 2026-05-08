@@ -1,56 +1,56 @@
-import React, { useEffect, useState } from "react";
-import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import React, { useCallback, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import MealCard from "../components/MealCard";
+import { useAuth } from "../contexts/AuthContext";
+import { loadMeals } from "../services/storageService";
 import { colors, globalStyles } from "../styles/StyleSheet";
+import { HomeStackParamList, Meal } from "../types";
 
-export default function HomeScreen({ navigation, route }: any) {
-  const [refeicoes, setRefeicoes] = useState([
-    {
-      id: "1",
-      name: "Café da manhã",
-      time: "08:15",
-      calories: 320,
-      details: "Iogurte, frutas e aveia",
-    },
-    {
-      id: "2",
-      name: "Almoço",
-      time: "12:45",
-      calories: 540,
-      details: "Arroz, feijão, frango grelhado e salada",
-    },
-    {
-      id: "3",
-      name: "Lanche da tarde",
-      time: "16:20",
-      calories: 180,
-      details: "Castanhas e uma maçã",
-    },
-  ]);
+type HomeScreenProps = NativeStackScreenProps<HomeStackParamList, "Home">;
 
-  useEffect(() => {
-    const novaRefeicao = route?.params?.novaRefeicao;
-    if (novaRefeicao) {
-      setRefeicoes((prev) => [...prev, novaRefeicao]);
+export default function HomeScreen({ navigation }: HomeScreenProps) {
+  const { user } = useAuth();
+  const [refeicoes, setRefeicoes] = useState<Meal[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-      navigation.setParams({ novaRefeicao: undefined });
-    }
-  }, [route?.params?.novaRefeicao]);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      setIsLoading(true);
+      loadMeals().then((meals) => {
+        if (active) {
+          setRefeicoes(meals);
+          setIsLoading(false);
+        }
+      });
+      return () => {
+        active = false;
+      };
+    }, [])
+  );
 
   const totalCalories = refeicoes.reduce((acc, meal) => acc + meal.calories, 0);
 
-  return (
-    <View style={globalStyles.screenContainer}>
+  const ListHeader = () => (
+    <>
       <View style={{ alignItems: "center", marginBottom: 12 }}>
         <Image
           source={require("../../assets/images/logo.png")}
-          style={{
-            width: 120,
-            height: 120,
-            marginBottom: 4,
-          }}
+          style={{ width: 120, height: 120, marginBottom: 4 }}
           resizeMode="contain"
         />
-        <Text style={[globalStyles.title, { marginBottom: 4 }]}>Olá!</Text>
+        <Text style={[globalStyles.title, { marginBottom: 4 }]}>
+          Olá, {user?.email.split("@")[0]}!
+        </Text>
         <Text style={[globalStyles.subtitle, { marginBottom: 0 }]}>
           Acompanhe sua alimentação de hoje com a Helfy.
         </Text>
@@ -67,13 +67,8 @@ export default function HomeScreen({ navigation, route }: any) {
         >
           Resumo de hoje
         </Text>
-
         <Text
-          style={{
-            fontSize: 13,
-            color: colors.textMuted,
-            marginBottom: 12,
-          }}
+          style={{ fontSize: 13, color: colors.textMuted, marginBottom: 12 }}
         >
           Veja como está sua alimentação ao longo do dia.
         </Text>
@@ -100,7 +95,6 @@ export default function HomeScreen({ navigation, route }: any) {
               {totalCalories} kcal
             </Text>
           </View>
-
           <View style={{ flex: 1, marginLeft: 8 }}>
             <Text style={{ fontSize: 13, color: colors.textMuted }}>
               Refeições registradas
@@ -129,114 +123,54 @@ export default function HomeScreen({ navigation, route }: any) {
         </TouchableOpacity>
       </View>
 
-      <Text
-        style={{
-          fontSize: 16,
-          fontWeight: "600",
-          color: colors.text,
-          marginBottom: 8,
-        }}
-      >
-        Refeições de hoje
-      </Text>
+      <View style={{ marginBottom: 8 }}>
+        <Text style={{ fontSize: 16, fontWeight: "600", color: colors.text }}>
+          Refeições de hoje
+        </Text>
+      </View>
+    </>
+  );
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {refeicoes.length === 0 ? (
-          <View
-            style={[
-              globalStyles.card,
-              { alignItems: "center", paddingVertical: 24 },
-            ]}
-          >
-            <Text style={{ color: colors.textMuted, fontSize: 14 }}>
-              Você ainda não adicionou nenhuma refeição hoje.
-            </Text>
-          </View>
-        ) : (
-          refeicoes.map((refeicao) => (
-            <View
-              key={refeicao.id}
-              style={[
-                globalStyles.card,
-                {
-                  marginBottom: 12,
-                  paddingVertical: 12,
-                  paddingHorizontal: 14,
-                },
-              ]}
-            >
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={{
-                      fontSize: 15,
-                      fontWeight: "600",
-                      color: colors.text,
-                    }}
-                  >
-                    {refeicao.name}
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      color: colors.textMuted,
-                      marginTop: 2,
-                    }}
-                  >
-                    {refeicao.details}
-                  </Text>
-                </View>
-                <View style={{ alignItems: "flex-end", marginLeft: 8 }}>
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      color: colors.textMuted,
-                      marginBottom: 2,
-                    }}
-                  >
-                    {refeicao.time}
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 14,
-                      fontWeight: "600",
-                      color: colors.primary,
-                    }}
-                  >
-                    {refeicao.calories} kcal
-                  </Text>
-                </View>
-              </View>
-            </View>
-          ))
-        )}
+  const ListEmpty = () => (
+    <View
+      style={[
+        globalStyles.card,
+        { alignItems: "center", paddingVertical: 24 },
+      ]}
+    >
+      {isLoading ? (
+        <ActivityIndicator color={colors.primary} />
+      ) : (
+        <Text style={{ color: colors.textMuted, fontSize: 14 }}>
+          Você ainda não adicionou nenhuma refeição hoje.
+        </Text>
+      )}
+    </View>
+  );
 
-        <TouchableOpacity
-          style={[
-            globalStyles.button,
-            {
-              marginTop: 12,
-              marginBottom: 8,
-              backgroundColor: colors.primary,
-            },
-          ]}
-          onPress={() =>
-            navigation.navigate("AdicionarRefeicao", {
-              adicionarRefeicao: (novaRefeicao: any) => {
-                setRefeicoes((prev) => [...prev, novaRefeicao]);
-              },
-            })
-          }
-        >
-          <Text style={globalStyles.buttonText}>Adicionar refeição</Text>
-        </TouchableOpacity>
-      </ScrollView>
+  const ListFooter = () => (
+    <TouchableOpacity
+      style={[
+        globalStyles.button,
+        { marginTop: 12, marginBottom: 8, backgroundColor: colors.primary },
+      ]}
+      onPress={() => navigation.navigate("AdicionarRefeicao")}
+    >
+      <Text style={globalStyles.buttonText}>+ Adicionar refeição</Text>
+    </TouchableOpacity>
+  );
+
+  return (
+    <View style={globalStyles.screenContainer}>
+      <FlatList<Meal>
+        data={refeicoes}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => <MealCard meal={item} />}
+        ListHeaderComponent={<ListHeader />}
+        ListEmptyComponent={<ListEmpty />}
+        ListFooterComponent={<ListFooter />}
+        showsVerticalScrollIndicator={false}
+      />
     </View>
   );
 }
