@@ -1,8 +1,11 @@
+import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -11,9 +14,49 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { notifyMealSaved } from "../services/notificationService";
+import { socketService } from "../services/socketService";
 import { loadMeals, saveMeals } from "../services/storageService";
-import { colors, globalStyles } from "../styles/StyleSheet";
+import { colors, globalStyles, spacing } from "../styles/StyleSheet";
 import { AppStatus, Meal } from "../types";
+
+async function pickImage(fromCamera: boolean): Promise<string | null> {
+  if (fromCamera) {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permissão necessária",
+        "Permita o acesso à câmera para fotografar suas refeições.",
+        [{ text: "OK" }]
+      );
+      return null;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: 'images',
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.7,
+    });
+    return result.canceled ? null : result.assets[0].uri;
+  } else {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permissão necessária",
+        "Permita o acesso à galeria para escolher fotos das refeições.",
+        [{ text: "OK" }]
+      );
+      return null;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images',
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.7,
+    });
+    return result.canceled ? null : result.assets[0].uri;
+  }
+}
 
 export default function AdicionarRefeicaoScreen() {
   const navigation = useNavigation();
@@ -21,7 +64,28 @@ export default function AdicionarRefeicaoScreen() {
   const [horario, setHorario] = useState("");
   const [calorias, setCalorias] = useState("");
   const [descricao, setDescricao] = useState("");
+  const [photo, setPhoto] = useState<string | null>(null);
   const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE);
+
+  function handleAddPhoto() {
+    Alert.alert("Adicionar foto", "Escolha a origem da imagem", [
+      {
+        text: "Câmera",
+        onPress: async () => {
+          const uri = await pickImage(true);
+          if (uri) setPhoto(uri);
+        },
+      },
+      {
+        text: "Galeria",
+        onPress: async () => {
+          const uri = await pickImage(false);
+          if (uri) setPhoto(uri);
+        },
+      },
+      { text: "Cancelar", style: "cancel" },
+    ]);
+  }
 
   const salvarRefeicao = async () => {
     if (!nomeRefeicao || !horario || !calorias) {
@@ -37,12 +101,21 @@ export default function AdicionarRefeicaoScreen() {
       time: horario,
       calories: Number(calorias),
       details: descricao || "Refeição registrada",
+      photo: photo ?? undefined,
     };
 
     setStatus(AppStatus.LOADING);
     try {
       const existentes = await loadMeals();
       await saveMeals([...existentes, novaRefeicao]);
+
+      // Comunicação em tempo real: emite para outros dispositivos
+      socketService.connect();
+      socketService.emitMealAdded(novaRefeicao);
+
+      // Notificação push nativa
+      await notifyMealSaved(novaRefeicao.name, novaRefeicao.calories);
+
       setStatus(AppStatus.SUCCESS);
 
       setTimeout(() => {
@@ -72,7 +145,54 @@ export default function AdicionarRefeicaoScreen() {
           Registre o que você comeu para acompanhar sua alimentação diária.
         </Text>
 
-        <View style={[globalStyles.card, { marginTop: 8 }]}>
+        {/* Foto da refeição */}
+        <TouchableOpacity
+          onPress={handleAddPhoto}
+          style={{
+            borderWidth: 2,
+            borderStyle: "dashed",
+            borderColor: photo ? colors.primary : colors.border,
+            borderRadius: 12,
+            height: 160,
+            marginBottom: spacing.md,
+            overflow: "hidden",
+            backgroundColor: colors.inputBackground,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+          activeOpacity={0.7}
+        >
+          {photo ? (
+            <Image
+              source={{ uri: photo }}
+              style={{ width: "100%", height: "100%", borderRadius: 10 }}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={{ alignItems: "center", gap: 8 }}>
+              <Feather name="camera" size={32} color={colors.textMuted} />
+              <Text style={{ fontSize: 13, color: colors.textMuted, fontWeight: "500" }}>
+                Toque para adicionar foto
+              </Text>
+              <Text style={{ fontSize: 11, color: colors.textMuted }}>
+                Câmera ou galeria
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+
+        {photo && (
+          <TouchableOpacity
+            onPress={() => setPhoto(null)}
+            style={{ alignItems: "center", marginBottom: spacing.md }}
+          >
+            <Text style={{ fontSize: 13, color: colors.danger }}>
+              Remover foto
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        <View style={[globalStyles.card, { marginTop: 4 }]}>
           <Text style={globalStyles.inputLabel}>Nome da refeição</Text>
           <TextInput
             style={globalStyles.input}
@@ -120,10 +240,30 @@ export default function AdicionarRefeicaoScreen() {
               backgroundColor: "#DCFCE7",
               borderRadius: 10,
               alignItems: "center",
+              flexDirection: "row",
+              justifyContent: "center",
+              gap: 8,
             }}
           >
+            <Feather name="check-circle" size={16} color={colors.primary} />
             <Text style={{ color: colors.primary, fontWeight: "600" }}>
               Refeição salva com sucesso!
+            </Text>
+          </View>
+        )}
+
+        {status === AppStatus.ERROR && (
+          <View
+            style={{
+              marginTop: 16,
+              padding: 12,
+              backgroundColor: "#FEE2E2",
+              borderRadius: 10,
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ color: colors.danger, fontWeight: "600" }}>
+              Não foi possível salvar a refeição. Tente novamente.
             </Text>
           </View>
         )}
@@ -132,7 +272,9 @@ export default function AdicionarRefeicaoScreen() {
           style={[
             globalStyles.button,
             { marginTop: 24 },
-            status === AppStatus.LOADING && { opacity: 0.7 },
+            (status === AppStatus.LOADING || status === AppStatus.SUCCESS) && {
+              opacity: 0.7,
+            },
           ]}
           onPress={salvarRefeicao}
           disabled={status === AppStatus.LOADING || status === AppStatus.SUCCESS}

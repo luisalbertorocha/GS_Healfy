@@ -1,4 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import { DailyGoals, Meal, StorageKey, User } from '../types';
 
 const DEFAULT_GOALS: DailyGoals = {
@@ -7,17 +9,41 @@ const DEFAULT_GOALS: DailyGoals = {
   refeicoesMeta: 4,
 };
 
+// Armazena dados sensíveis de forma segura (Keychain/Keystore no mobile, localStorage na web)
+async function setSecure(key: string, value: string): Promise<void> {
+  if (Platform.OS === 'web') {
+    localStorage.setItem(key, value);
+  } else {
+    await SecureStore.setItemAsync(key, value);
+  }
+}
+
+async function getSecure(key: string): Promise<string | null> {
+  if (Platform.OS === 'web') {
+    return localStorage.getItem(key);
+  }
+  return SecureStore.getItemAsync(key);
+}
+
+async function deleteSecure(key: string): Promise<void> {
+  if (Platform.OS === 'web') {
+    localStorage.removeItem(key);
+  } else {
+    await SecureStore.deleteItemAsync(key);
+  }
+}
+
 export async function saveSession(user: User): Promise<void> {
-  await AsyncStorage.setItem(StorageKey.SESSION, JSON.stringify(user));
+  await setSecure(StorageKey.SESSION, JSON.stringify(user));
 }
 
 export async function loadSession(): Promise<User | null> {
-  const data = await AsyncStorage.getItem(StorageKey.SESSION);
+  const data = await getSecure(StorageKey.SESSION);
   return data ? (JSON.parse(data) as User) : null;
 }
 
 export async function clearSession(): Promise<void> {
-  await AsyncStorage.removeItem(StorageKey.SESSION);
+  await deleteSecure(StorageKey.SESSION);
 }
 
 export async function saveMeals(meals: Meal[]): Promise<void> {

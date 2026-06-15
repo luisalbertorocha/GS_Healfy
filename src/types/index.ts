@@ -4,6 +4,7 @@ export interface Meal {
   time: string;
   calories: number;
   details: string;
+  photo?: string;
 }
 
 export interface DailyGoals {
@@ -24,7 +25,7 @@ export enum AppStatus {
 }
 
 export enum StorageKey {
-  SESSION = '@healfy:session',
+  SESSION = 'healfy_session',
   MEALS = '@healfy:meals',
   GOALS = '@healfy:goals',
 }
@@ -44,5 +45,6 @@ export type TabParamList = {
   HomeTab: undefined;
   Metas: undefined;
   Adicionar: undefined;
+  IoT: undefined;
   Perfil: undefined;
 };

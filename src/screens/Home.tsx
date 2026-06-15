@@ -1,6 +1,6 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import MealCard from "../components/MealCard";
 import { useAuth } from "../contexts/AuthContext";
+import { socketService } from "../services/socketService";
 import { loadMeals } from "../services/storageService";
 import { colors, globalStyles } from "../styles/StyleSheet";
 import { HomeStackParamList, Meal } from "../types";
@@ -21,6 +22,31 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const { user } = useAuth();
   const [refeicoes, setRefeicoes] = useState<Meal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [socketConnected, setSocketConnected] = useState(false);
+  const [realtimeBanner, setRealtimeBanner] = useState<string | null>(null);
+
+  // Conecta ao Socket.IO e escuta refeições em tempo real
+  useEffect(() => {
+    socketService.connect();
+
+    const statusInterval = setInterval(() => {
+      setSocketConnected(socketService.isConnected());
+    }, 1500);
+
+    const unsubMeal = socketService.onMealAdded((meal) => {
+      setRefeicoes((prev) => {
+        if (prev.find((m) => m.id === meal.id)) return prev;
+        return [...prev, meal];
+      });
+      setRealtimeBanner(`Nova refeição recebida: ${meal.name} (${meal.calories} kcal)`);
+      setTimeout(() => setRealtimeBanner(null), 4000);
+    });
+
+    return () => {
+      clearInterval(statusInterval);
+      unsubMeal();
+    };
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -42,6 +68,33 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   const ListHeader = () => (
     <>
+      {/* Banner de atualização em tempo real */}
+      {realtimeBanner && (
+        <View
+          style={{
+            backgroundColor: colors.primary,
+            borderRadius: 10,
+            padding: 10,
+            marginBottom: 8,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <View
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: "#FFFFFF",
+            }}
+          />
+          <Text style={{ color: "#FFFFFF", fontSize: 13, fontWeight: "600", flex: 1 }}>
+            {realtimeBanner}
+          </Text>
+        </View>
+      )}
+
       <View style={{ alignItems: "center", marginBottom: 12 }}>
         <Image
           source={require("../../assets/images/logo.png")}
@@ -54,6 +107,20 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         <Text style={[globalStyles.subtitle, { marginBottom: 0 }]}>
           Acompanhe sua alimentação de hoje com a Helfy.
         </Text>
+        {/* Indicador de conexão em tempo real */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6 }}>
+          <View
+            style={{
+              width: 7,
+              height: 7,
+              borderRadius: 3.5,
+              backgroundColor: socketConnected ? colors.primary : colors.textMuted,
+            }}
+          />
+          <Text style={{ fontSize: 11, color: colors.textMuted }}>
+            {socketConnected ? "Sync em tempo real ativo" : "Offline — sem servidor"}
+          </Text>
+        </View>
       </View>
 
       <View style={[globalStyles.card, { marginTop: 16, marginBottom: 16 }]}>

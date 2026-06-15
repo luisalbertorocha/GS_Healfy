@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import AdicionarRefeicaoScreen from "../screens/AdicionarRefeicao";
+import IoTDashboardScreen from "../screens/IoTDashboard";
 import MetasDiariasScreen from "../screens/MetasDiarias";
 import PerfilScreen from "../screens/Perfil";
 import { colors } from "../styles/StyleSheet";
@@ -57,6 +58,17 @@ export default function TabNavigation() {
             <Feather name="plus-circle" color={color} size={size} />
           ),
           tabBarLabel: "Adicionar",
+        }}
+      />
+
+      <Tab.Screen
+        name="IoT"
+        component={IoTDashboardScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="activity" color={color} size={size} />
+          ),
+          tabBarLabel: "Monitor",
         }}
       />
 
